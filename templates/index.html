@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <title>Weight Tracker</title>
+</head>
+<body>
+    <h1>Weight Tracker</h1>
+
+    <div>
+        <label for="weight">Enter your weight:</label>
+        <input type="number" id="weight" step="0.1" min="0">
+        <button onclick="updateGraph()">Add Weight</button>
+    </div>
+
+    <div id="weightGraph"></div>
+
+    <script>
+        // Initial data for the graph
+        var data = [{
+            x: [],
+            y: [],
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Weight'
+        }];
+
+        var layout = {
+            title: 'Weight Tracking Graph',
+            xaxis: {
+                title: 'Time'
+            },
+            yaxis: {
+                title: 'Weight (kg)'
+            }
+        };
+
+        // Function to update the graph with new weight data
+        function updateGraph() {
+            var weightInput = document.getElementById('weight');
+            var weight = parseFloat(weightInput.value);
+
+            if (!isNaN(weight)) {
+                // Make an AJAX request to update the graph
+                fetch('/update_graph', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'weight=' + weight,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the graph with the new data
+                        fetch('/get_graph_data')
+                        .then(response => response.json())
+                        .then(graphData => {
+                            updatePlotlyGraph(graphData);
+                        });
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+
+            // Clear the input field
+            weightInput.value = '';
+        }
+
+        // Function to initialize the graph with existing data
+        function initializeGraph() {
+            fetch('/get_graph_data')
+            .then(response => response.json())
+            .then(graphData => {
+                updatePlotlyGraph(graphData);
+            });
+        }
+
+        // Function to update the Plotly graph
+        function updatePlotlyGraph(graphData) {
+            // Update the graph with the existing data
+            data[0].x = graphData.time;
+            data[0].y = graphData.weight;
+
+            // Create or update the plot
+            Plotly.newPlot('weightGraph', data, layout);
+        }
+
+        // Initialize the graph when the page loads
+        initializeGraph();
+    </script>
+</body>
+</html>
